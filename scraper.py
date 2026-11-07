@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Google Maps Cafe Lead Scraper & Filter via Serper.dev /maps
-Mendeteksi cafe di Google Maps yang belum memiliki website resmi.
+Google Maps Local Business Lead Scraper & Filter via Serper.dev /maps
+Mendeteksi bisnis lokal di Google Maps yang belum memiliki website resmi.
 Tanpa dependensi eksternal (Python Standard Library murni).
 """
 
@@ -50,6 +50,18 @@ def fetch_serper_maps(api_key: str, query: str, location: str = "Indonesia") -> 
         print(f"[Error] Gagal menghubungi Serper: {err}", file=sys.stderr)
         return []
 
+def clean_phone_number(raw_phone: str) -> str:
+    if not raw_phone or raw_phone == "-":
+        return "-"
+    phone = raw_phone.strip()
+    if phone.startswith("+62 "):
+        return "0" + phone[4:]
+    if phone.startswith("+62"):
+        return "0" + phone[3:]
+    if phone.startswith("+"):
+        return "'" + phone
+    return phone
+
 def extract_whatsapp_link(booking_links: list) -> str:
     for link in booking_links:
         if "wa.me" in link or "whatsapp.com" in link:
@@ -73,11 +85,11 @@ def process_places(places: list) -> list:
     for place in places:
         name = place.get("title", "Tanpa Nama")
         address = place.get("address", "-")
-        phone = place.get("phoneNumber", "-")
+        phone = clean_phone_number(place.get("phoneNumber", "-"))
         raw_web = (place.get("website") or "").strip()
         rating = place.get("rating", "-")
         reviews = place.get("ratingCount", 0)
-        category = place.get("type", place.get("category", "Cafe"))
+        category = place.get("type", place.get("category", "Bisnis Lokal"))
         
         booking_links = place.get("bookingLinks", [])
         wa_link = extract_whatsapp_link(booking_links)
@@ -117,7 +129,6 @@ def save_to_csv(results: list, filename: str):
         print("Tidak ada data untuk disimpan.")
         return
     
-    # Buang flag internal sebelum diekspor
     export_data = []
     for r in results:
         clean_row = {k: v for k, v in r.items() if k != "Is_Prospect"}
@@ -131,10 +142,10 @@ def save_to_csv(results: list, filename: str):
     print(f"[Selesai] Berhasil menyimpan {len(export_data)} data ke: {filename}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Filter Prospek Website Cafe via Serper.dev /maps")
-    parser.add_argument("--query", "-q", default="cafe di cipete jakarta selatan", help="Kata kunci pencarian")
+    parser = argparse.ArgumentParser(description="Filter Prospek Website Bisnis Lokal via Serper.dev /maps")
+    parser.add_argument("--query", "-q", default="klinik gigi di jakarta selatan", help="Kata kunci pencarian (misal: 'klinik gigi jakarta', 'auto detailing jaksel', 'cafe tebet')")
     parser.add_argument("--api-key", "-k", default=os.getenv("SERPER_API_KEY"), help="API Key Serper.dev")
-    parser.add_argument("--output", "-o", default="prospek_cafe.csv", help="Nama file CSV output")
+    parser.add_argument("--output", "-o", default="prospek_bisnis.csv", help="Nama file CSV output")
     parser.add_argument("--only-prospects", action="store_true", help="Hanya simpan tempat yang belum punya website resmi")
     
     args = parser.parse_args()

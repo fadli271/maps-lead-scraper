@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Batch Scraper Prospek Website Cafe Jakarta ke Google Sheets.
-Mengambil data dari beberapa spot target strategis via Serper.dev /maps,
+Batch Scraper Prospek Website Bisnis Lokal ke Google Sheets.
+Mengambil data bisnis lokal dari Google Maps via Serper.dev /maps,
 melakukan deduplikasi, dan menyinkronkan data bersih ke Google Sheets.
 Tanpa dependensi eksternal (Python Standard Library murni).
 """
@@ -15,7 +15,8 @@ import subprocess
 import urllib.request
 import urllib.error
 
-TARGET_SPOTS = [
+# Daftar spot default (bisa disesuaikan per industri: cafe, klinik gigi, auto detailing, salon, dll)
+DEFAULT_TARGET_SPOTS = [
     {"wilayah": "Cipete (Jaksel)", "query": "cafe di cipete jakarta selatan"},
     {"wilayah": "Tebet (Jaksel)", "query": "cafe di tebet jakarta selatan"},
     {"wilayah": "Blok M (Jaksel)", "query": "cafe di blok m jakarta selatan"},
@@ -37,7 +38,6 @@ NON_WEBSITE_DOMAINS = (
 )
 
 def load_env_file(filepath: str = ".env"):
-    """Membaca file .env sederhana tanpa dependensi python-dotenv."""
     if not os.path.isfile(filepath):
         return
     with open(filepath, "r", encoding="utf-8") as f:
@@ -104,10 +104,10 @@ def check_website_status(website_url: str):
 def main():
     load_env_file()
     
-    parser = argparse.ArgumentParser(description="Batch Scraper Prospek Website Cafe ke Google Sheets")
+    parser = argparse.ArgumentParser(description="Batch Scraper Prospek Website Bisnis Lokal ke Google Sheets")
     parser.add_argument("--api-key", "-k", default=os.getenv("SERPER_API_KEY"), help="API Key Serper.dev")
     parser.add_argument("--spreadsheet-id", "-s", default=os.getenv("SPREADSHEET_ID"), help="ID Spreadsheet Google Sheets")
-    parser.add_argument("--output", "-o", default="prospek_5_spot_jakarta.csv", help="Path file CSV output")
+    parser.add_argument("--output", "-o", default="prospek_bisnis_terkumpul.csv", help="Path file CSV output")
     parser.add_argument("--skip-upload", action="store_true", help="Lewati proses upload ke Google Sheets")
     
     args = parser.parse_args()
@@ -116,11 +116,11 @@ def main():
         print("[Error] SERPER_API_KEY tidak ditemukan. Atur di .env atau via argumen -k.", file=sys.stderr)
         sys.exit(1)
         
-    print(f"Mulai batch scraping untuk {len(TARGET_SPOTS)} wilayah target...")
+    print(f"Mulai batch scraping untuk {len(DEFAULT_TARGET_SPOTS)} target wilayah...")
     seen_cids = set()
     all_leads = []
     
-    for spot in TARGET_SPOTS:
+    for spot in DEFAULT_TARGET_SPOTS:
         wilayah = spot["wilayah"]
         query = spot["query"]
         print(f"\n--> Mengambil data untuk {wilayah} ('{query}')...")
@@ -141,7 +141,7 @@ def main():
             phone = clean_phone_number(p.get("phoneNumber", "-"))
             booking_links = p.get("bookingLinks", [])
             wa_link = extract_whatsapp_link(booking_links)
-            category = p.get("type", p.get("category", "Cafe"))
+            category = p.get("type", p.get("category", "Bisnis Lokal"))
             rating = p.get("rating", "-")
             reviews = p.get("ratingCount", 0)
             
@@ -149,7 +149,7 @@ def main():
             
             if status == "TIDAK_ADA":
                 status_desc = "Belum Ada Website"
-                rekomendasi = "PROSPEK TINGGI: Buat Website Profil & Menu"
+                rekomendasi = "PROSPEK TINGGI: Buat Website Profil & Layanan"
             elif status == "HANYA_SOSMED_ATAU_MENU":
                 status_desc = "Hanya Sosmed / Menu Digital"
                 rekomendasi = "PROSPEK SEDANG: Upgrade Sosmed ke Website Resmi"
@@ -203,7 +203,6 @@ def main():
     
     if res.returncode == 0:
         print("[Sukses] Data berhasil diunggah ke Google Sheets!")
-        # Terapkan styling otomatis
         subprocess.run(["gsheets", "mutate", "freeze", args.spreadsheet_id, "--sheet-id", "0", "--rows", "1"], capture_output=True)
         subprocess.run([
             "gsheets", "mutate", "format", args.spreadsheet_id,

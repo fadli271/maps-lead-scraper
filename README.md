@@ -1,32 +1,38 @@
-# Google Maps Cafe Lead Scraper & Google Sheets Sync
+# Maps Lead Scraper & Google Sheets Sync
 
-Alat otomasi berbasis Python untuk mengekstrak, memfilter, dan mengklasifikasikan prospek bisnis cafe dan restoran lokal dari Google Maps ke Google Sheets secara real-time.
+Alat otomasi berbasis Python untuk mengekstrak, memfilter, dan mengklasifikasikan prospek bisnis lokal dari Google Maps ke Google Sheets secara real-time.
 
-Dirancang untuk agensi digital, web developer, dan penyedia jasa pemeliharaan website guna menemukan prospek bisnis yang belum memiliki website resmi atau hanya mengandalkan media sosial.
+Dapat digunakan untuk berbagai industri dan ceruk bisnis:
+- **F&B:** Cafe, Restoran, Coffee Shop.
+- **Kesehatan & Estetika:** Klinik Gigi, Klinik Kecantikan, Skincare.
+- **Otomotif:** Auto Detailing, Workshop Modifikasi, Paint Protection Film (PPF).
+- **Properti & Jasa Rumah:** Desain Interior, Kontraktor Renovasi, Arsitek.
+- **Layanan Hewan:** Pet Hotel, Grooming, Klinik Hewan.
+- **Event & Pernikahan:** Wedding Organizer, Studio Foto.
 
 ---
 
 ## Fitur Utama
 
-- **Integrasi Google Maps:** Mengambil data tempat secara cepat via endpoint `/maps` Serper.dev tanpa risiko pemblokiran IP atau CAPTCHA.
+- **Integrasi Google Maps:** Mengambil data tempat bisnis lokal via endpoint `/maps` Serper.dev tanpa risiko pemblokiran IP atau CAPTCHA.
 - **Deteksi Otomatis Status Website:**
-  - `Belum Ada Website`: Tempat tidak mencantumkan tautan apapun di profil Google Maps (Target Utama Pembuatan Web Baru).
-  - `Hanya Sosmed / Menu Digital`: Tempat mencantumkan Instagram, Linktree, TikTok, atau GoFood pada kolom website (Target Upgrade Web Resmi).
-  - `Sudah Ada Website Resmi`: Tempat sudah memiliki domain situs web mandiri (Target Audit / Redesign).
-- **Ekstraksi Kontak Lengkap:** Mengambil nomor telepon lokal (otomatis diformat bersih), link langsung WhatsApp (`wa.me`), alamat lengkap, rating, dan jumlah ulasan.
+  - `Belum Ada Website`: Bisnis tidak mencantumkan tautan apapun di Google Maps (Target Utama Pembuatan Web Baru).
+  - `Hanya Sosmed / Menu Digital`: Bisnis hanya mencantumkan Instagram, Linktree, TikTok, atau GoFood (Target Upgrade ke Website Resmi).
+  - `Sudah Ada Website Resmi`: Bisnis sudah memiliki domain web mandiri (Target Audit / Redesign / Maintenance).
+- **Ekstraksi Kontak Lengkap:** Mengambil nomor telepon lokal (otomatis diformat bersih ke `08xx`/`021-xx`), link langsung WhatsApp (`wa.me`), alamat lengkap, rating, dan jumlah ulasan.
 - **Deduplikasi Cerdas:** Menghindari data ganda antar wilayah pencarian menggunakan identitas unik `cid` Google Maps.
 - **Sinkronisasi Otomatis Google Sheets:** Data langsung diimpor dan diformat otomatis (freeze header row, navy styling, auto-column resize) via CLI Google Sheets (`gsheets`).
-- **Tanpa Dependensi Berat:** Berjalan murni menggunakan Python Standard Library (tanpa `pip install`, tanpa Puppeteer, tanpa Playwright).
+- **Tanpa Dependensi Berat:** Berjalan murni menggunakan Python Standard Library (tanpa `pip install`, tanpa headless browser).
 
 ---
 
-## Struktur Proyek
+## Struktur Repositori
 
 ```text
 ├── scraper.py           # Script pencarian satuan untuk satu kata kunci/wilayah
-├── batch_scrape.py      # Script batch untuk beberapa spot target + auto-sync ke Google Sheets
+├── batch_scrape.py      # Script batch untuk beberapa target spot + auto-sync ke Google Sheets
 ├── .env.example         # Template konfigurasi environment variables
-├── .gitignore           # Aturan pengabaian file sensitif dan output CSV
+├── .gitignore           # Aturan pengabaian file sensitif dan output CSV lokal
 └── README.md            # Dokumentasi proyek
 ```
 
@@ -36,7 +42,7 @@ Dirancang untuk agensi digital, web developer, dan penyedia jasa pemeliharaan we
 
 ### 1. Prasyarat
 - Python 3.8 atau versi lebih baru.
-- Akun Google di [Serper.dev](https://serper.dev) (Tersedia 2.500 pencarian gratis tanpa kartu kredit).
+- Akun di [Serper.dev](https://serper.dev) (Tersedia 2.500 pencarian gratis tanpa kartu kredit).
 - Plugin / CLI `gsheets` jika ingin menggunakan fitur sinkronisasi otomatis ke Google Sheets.
 
 ### 2. Konfigurasi Environment Variables
@@ -53,7 +59,7 @@ SERPER_API_KEY=api_key_serper_anda
 SPREADSHEET_ID=id_spreadsheet_google_anda
 ```
 
-> **Catatan:** File `.env` sudah masuk ke dalam `.gitignore` sehingga credential Anda tidak akan pernah terunggah ke repositori publik.
+> **Keamanan:** File `.env` sudah masuk ke dalam `.gitignore` sehingga credential Anda tidak akan pernah terunggah ke repositori publik.
 
 ---
 
@@ -61,19 +67,22 @@ SPREADSHEET_ID=id_spreadsheet_google_anda
 
 ### 1. Pencarian Satuan (`scraper.py`)
 
-Gunakan untuk mencari satu wilayah tertentu secara fleksibel:
+Gunakan untuk mencari satu ceruk bisnis di wilayah tertentu:
 
 ```bash
-# Mencari semua tempat di wilayah tertentu
-python3 scraper.py -k "API_KEY_ANDA" -q "cafe di tebet jakarta selatan"
+# Contoh 1: Mencari klinik gigi di Jakarta Selatan
+python3 scraper.py -k "API_KEY_ANDA" -q "klinik gigi di jakarta selatan" --only-prospects -o "prospek_klinik_gigi.csv"
 
-# Hanya menyaring tempat yang BELUM memiliki website resmi
-python3 scraper.py -k "API_KEY_ANDA" -q "cafe di cipete jakarta selatan" --only-prospects -o "prospek_cipete.csv"
+# Contoh 2: Mencari auto detailing di Jakarta Barat
+python3 scraper.py -k "API_KEY_ANDA" -q "auto detailing di jakarta barat" --only-prospects -o "prospek_detailing.csv"
+
+# Contoh 3: Mencari cafe di Tebet
+python3 scraper.py -k "API_KEY_ANDA" -q "cafe di tebet jakarta selatan" --only-prospects -o "prospek_cafe_tebet.csv"
 ```
 
 ### 2. Batch Scraping & Sinkronisasi ke Google Sheets (`batch_scrape.py`)
 
-Gunakan untuk menjalankan pemindaian otomatis ke 5 spot strategis (Cipete, Tebet, Blok M, PIK, Tanjung Duren), melakukan deduplikasi, dan mengunggah langsung ke spreadsheet Google:
+Gunakan untuk menjalankan pemindaian otomatis ke beberapa target spot, melakukan deduplikasi, dan mengunggah langsung ke spreadsheet Google:
 
 ```bash
 python3 batch_scrape.py
@@ -93,7 +102,7 @@ python3 batch_scrape.py --skip-upload -o "hasil_lokal.csv"
 | :--- | :--- |
 | `No` | Nomor urut data |
 | `Wilayah` | Label wilayah pencarian |
-| `Nama_Tempat` | Nama cafe atau bisnis |
+| `Nama_Tempat` | Nama bisnis atau tempat |
 | `Kategori` | Kategori bisnis dari Google Maps |
 | `Status_Website` | Klasifikasi (Belum Ada Web / Hanya Sosmed / Sudah Ada Web) |
 | `Tautan_Terdaftar` | URL yang terdaftar di Google Maps |
